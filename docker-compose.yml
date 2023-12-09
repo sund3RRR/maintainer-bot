@@ -1,0 +1,19 @@
+version: "3.8"
+services:
+  postgres:
+    image: postgres:16.1
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: kAHmh9g37h6n7rLQU
+      POSTGRES_DB: maintainer-db
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./pgdata/:/var/lib/postgresql/data
+  bot:
+    build:
+      context: ./app
+    restart: always
+    depends_on:
+      - postgres

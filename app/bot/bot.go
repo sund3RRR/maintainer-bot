@@ -1,45 +1,19 @@
 package bot
 
 import (
-	"fmt"
+	"time"
 
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/vitaliy-ukiru/fsm-telebot"
+	"github.com/vitaliy-ukiru/fsm-telebot/storages/memory"
 	"go.uber.org/zap"
+	tgbot "gopkg.in/telebot.v3"
 )
 
-func StartHandler(userMessage *tgbotapi.Message, bot *tgbotapi.BotAPI) *tgbotapi.MessageConfig {
-	keyboard := GetStartKeyboard()
-	msg := tgbotapi.NewMessage(
-		userMessage.Chat.ID,
-		fmt.Sprintf("Hi! I am %s and my main ability is to notify "+
-			"you about new project releases!", bot.Self.UserName),
-	)
-	msg.ReplyMarkup = keyboard
-
-	return &msg
-}
-
-func HandleCommand(command string, userMessage *tgbotapi.Message, bot *tgbotapi.BotAPI) error {
-	var msg *tgbotapi.MessageConfig
-
-	switch command {
-	case "start":
-		msg = StartHandler(userMessage, bot)
-	default:
-		newMessage := tgbotapi.NewMessage(
-			userMessage.Chat.ID,
-			fmt.Sprintf("Sorry! Command /%s doesn't exist.", command),
-		)
-		msg = &newMessage
-	}
-
-	_, err := bot.Send(msg)
-
-	return err
-}
-
 func StartBot(token string, logger *zap.Logger) {
-	bot, err := tgbotapi.NewBotAPI(token)
+	bot, err := tgbot.NewBot(tgbot.Settings{
+		Token:  token,
+		Poller: &tgbot.LongPoller{Timeout: 3 * time.Second},
+	})
 	if err != nil {
 		logger.Error(
 			"An error occured while creating a bot",
@@ -47,38 +21,21 @@ func StartBot(token string, logger *zap.Logger) {
 			zap.String("Token", token),
 		)
 	}
+	logger.Info(
+		"Bot was successfully created",
+		zap.String("Bot UserName", bot.Me.Username),
+	)
+	storage := memory.NewStorage()
+	manager := fsm.NewManager(
+		bot,
+		nil,
+		storage,
+		nil,
+	)
+	logger.Info(
+		"The storage was successfully created",
+	)
+	RegisterHandlers(manager, logger, bot)
 
-	bot.Debug = true
-
-	u := tgbotapi.NewUpdate(0)
-	u.Timeout = 60
-
-	updates := bot.GetUpdatesChan(u)
-
-	logger.Info("Authorized on account", zap.String("Account", bot.Self.UserName))
-
-	for update := range updates {
-		if update.Message != nil {
-
-			if command := update.Message.Command(); command != "" {
-				logger.Info(
-					"Command received",
-					zap.String("FromMessage", update.Message.From.UserName),
-					zap.String("MessageText", update.Message.Text),
-				)
-				err := HandleCommand(command, update.Message, bot)
-				if err != nil {
-					logger.Error(
-						"An error occured while sending a message",
-						zap.Error(err),
-					)
-				}
-			}
-			logger.Info(
-				"Message received",
-				zap.String("FromMessage", update.Message.From.UserName),
-				zap.String("MessageText", update.Message.Text),
-			)
-		}
-	}
+	bot.Start()
 }

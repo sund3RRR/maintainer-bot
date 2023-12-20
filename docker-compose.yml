@@ -14,6 +14,17 @@ services:
   bot:
     build:
       context: ./app
+      dockerfile: Dockerfile
     restart: always
+    entrypoint: /app/maintainer-bot
     depends_on:
       - postgres
+  # bot-debug:
+  #   build:
+  #     context: ./app
+  #     dockerfile: Dockerfile.debug
+  #   restart: always
+  #   ports:
+  #     - "4000:4000"
+  #   depends_on:
+  #     - postgres

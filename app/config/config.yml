@@ -1,5 +1,7 @@
 telegram_bot:
   token: ""
+repo_hosting_apis:
+  github_token: ""
 postgres:
   host: postgres
   port: 5432

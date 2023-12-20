@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 
+	"github.com/google/go-github/v57/github"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/yaml.v3"
@@ -12,6 +13,9 @@ type AppConfig struct {
 	TelegramBot struct {
 		Token string `yaml:"token"`
 	} `yaml:"telegram_bot"`
+	RepoHostingApis struct {
+		GithubToken string `yaml:"github_token"`
+	} `yaml:"repo_hosting_apis"`
 	Postgres struct {
 		Host     string `yaml:"host"`
 		Port     int    `yaml:"port"`
@@ -20,6 +24,10 @@ type AppConfig struct {
 		Database string `yaml:"db"`
 	} `yaml:"postgres"`
 	ZapConfig zap.Config
+}
+
+type RepoHostingClients struct {
+	GitHub *github.Client
 }
 
 func NewConfig(filename string) (*AppConfig, error) {

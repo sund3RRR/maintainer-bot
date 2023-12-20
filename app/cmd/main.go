@@ -2,19 +2,22 @@ package main
 
 import (
 	"app/bot"
-	"app/config"
-	"context"
+	appConfig "app/config"
+	appDB "app/db"
+	"app/fetcher"
 	"fmt"
 	"log"
 	"os"
 
-	"github.com/jackc/pgx/v5"
+	"github.com/google/go-github/v57/github"
+	_ "github.com/lib/pq"
+
+	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
 
 func main() {
-	fmt.Print()
-	config, err := config.NewConfig("config/config.yml")
+	config, err := appConfig.NewConfig("config/config.yml")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -23,23 +26,24 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	defer logger.Sync()
 
 	databaseUrl := fmt.Sprintf(
-		"postgres://%s:%s@%s:%d/%s",
+		"postgres://%s:%s@%s:%d/%s?sslmode=disable",
 		config.Postgres.User,
 		config.Postgres.Password,
 		config.Postgres.Host,
 		config.Postgres.Port,
 		config.Postgres.Database,
 	)
-	fmt.Println(databaseUrl)
-	conn, err := pgx.Connect(context.Background(), databaseUrl)
+	db, err := sqlx.Connect("postgres", databaseUrl)
 	if err != nil {
-		logger.Error("Unable connect to database", zap.Error(err))
-		os.Exit(1)
+		log.Fatalln(err)
 	}
-	defer conn.Close(context.Background())
+	defer db.Close()
+
+	appDB.DBInstance = db
 
 	logger.Info(
 		"Successfully connected to PostgeSQL",
@@ -49,7 +53,21 @@ func main() {
 		zap.String("Database", config.Postgres.Database),
 	)
 
+	if len(os.Args) > 1 && os.Args[1] == "--prepare-db" {
+		appDB.PrepareDb(db)
+		logger.Info("Prepare database request complete successfully")
+	}
+
 	logger.Info("Starting telegram bot...")
 
-	bot.StartBot(config.TelegramBot.Token, logger)
+	githubClient := github.NewClient(nil).WithAuthToken(config.RepoHostingApis.GithubToken)
+
+	repoHostingClients := &appConfig.RepoHostingClients{
+		GitHub: githubClient,
+	}
+	repoUpdatesChan := make(chan *fetcher.RepoMessage)
+
+	go fetcher.StartRepoFetcher(repoUpdatesChan, db, repoHostingClients, logger)
+
+	bot.StartBot(config.TelegramBot.Token, repoUpdatesChan, logger)
 }

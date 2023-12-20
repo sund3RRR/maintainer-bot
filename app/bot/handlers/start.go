@@ -5,22 +5,22 @@ import (
 
 	"github.com/vitaliy-ukiru/fsm-telebot"
 	"go.uber.org/zap"
-	tgbot "gopkg.in/telebot.v3"
+	"gopkg.in/telebot.v3"
 )
 
-func GetStartKeyboard() *tgbot.ReplyMarkup {
-	keyboard := &tgbot.ReplyMarkup{
-		ReplyKeyboard: [][]tgbot.ReplyButton{
+func GetStartKeyboard() *telebot.ReplyMarkup {
+	keyboard := &telebot.ReplyMarkup{
+		ReplyKeyboard: [][]telebot.ReplyButton{
 			{
-				tgbot.ReplyButton{
+				telebot.ReplyButton{
 					Text: "/add_repo",
 				},
-				tgbot.ReplyButton{
+				telebot.ReplyButton{
 					Text: "/remove_repo",
 				},
 			},
 			{
-				tgbot.ReplyButton{
+				telebot.ReplyButton{
 					Text: "/list_repos",
 				},
 			},
@@ -29,10 +29,10 @@ func GetStartKeyboard() *tgbot.ReplyMarkup {
 	return keyboard
 }
 
-func StartHandler(c tgbot.Context, state fsm.Context, logger *zap.Logger, bot *tgbot.Bot) error {
+func StartHandler(c telebot.Context, state fsm.Context, logger *zap.Logger, bot *telebot.Bot) error {
 	logger.Info(
 		"Received /start, handling a command...",
-		zap.String("Context message", c.Text()),
+		zap.String("Sender username", c.Sender().Username),
 	)
 	keyboard := GetStartKeyboard()
 

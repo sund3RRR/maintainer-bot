@@ -8,8 +8,21 @@ import (
 	"gopkg.in/telebot.v3"
 )
 
+func GetHomeKeyboard() *telebot.ReplyMarkup {
+	keyboard := telebot.ReplyMarkup{
+		ReplyKeyboard: [][]telebot.ReplyButton{
+			{
+				telebot.ReplyButton{
+					Text: "/home",
+				},
+			},
+		},
+	}
+	return &keyboard
+}
+
 func GetStartKeyboard() *telebot.ReplyMarkup {
-	keyboard := &telebot.ReplyMarkup{
+	keyboard := telebot.ReplyMarkup{
 		ReplyKeyboard: [][]telebot.ReplyButton{
 			{
 				telebot.ReplyButton{
@@ -26,7 +39,7 @@ func GetStartKeyboard() *telebot.ReplyMarkup {
 			},
 		},
 	}
-	return keyboard
+	return &keyboard
 }
 
 func StartHandler(c telebot.Context, state fsm.Context, logger *zap.Logger, bot *telebot.Bot) error {
@@ -53,7 +66,7 @@ func StartHandler(c telebot.Context, state fsm.Context, logger *zap.Logger, bot 
 		return err
 	}
 
-	if err := c.Send("How can I help you?", keyboard); err != nil {
+	if err := c.Send("How can I help you?", &telebot.SendOptions{ReplyMarkup: keyboard}); err != nil {
 		return err
 	}
 

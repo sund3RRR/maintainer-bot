@@ -51,6 +51,6 @@ func StartRepoFetcher(c chan *RepoMessage, db *sqlx.DB, repoHostingClients *conf
 				}
 			}
 		}
-		time.Sleep(30 * time.Second)
+		time.Sleep(time.Minute)
 	}
 }

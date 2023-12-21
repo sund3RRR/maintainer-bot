@@ -14,6 +14,8 @@ import (
 	"gopkg.in/telebot.v3"
 )
 
+var ErrHostIsIncorrect = errors.New("Repo host is incorrrect")
+
 const (
 	AddRepoState fsm.State = "add_repo"
 )
@@ -42,15 +44,19 @@ func AddRepoHandler(c telebot.Context, state fsm.Context, logger *zap.Logger, bo
 		)
 	}
 
-	err = c.Send("No problem! Just send me a link to the repository (GitHub only for now)")
+	err = c.Send("No problem! Just send me a link to the repository (GitHub only for now)", GetHomeKeyboard())
 
 	return err
 }
 
 func OnRepoEntered(c telebot.Context, state fsm.Context, logger *zap.Logger, bot *telebot.Bot) error {
+	var githubErrResponse *github.ErrorResponse
+
 	repo, err := parseMessage(c.Message())
-	if err != nil || !checkRepoIsValid(repo) {
-		err := c.Send("I can't parse the repository. Please enter the repo in the format 'https://**host**/**owner**/**repo**'")
+	if err != nil {
+		messageText := "Sorry, but I can't add the repository :(" +
+			"\n Please enter the repo in the format 'https://<u>host</u>/<u>owner</u>/<u>repo</u>'"
+		err := c.Send(messageText, &telebot.SendOptions{ParseMode: telebot.ModeHTML})
 		if err != nil {
 			logger.Error(
 				"An error occured while trying to send 'formating repo error' for user",
@@ -58,6 +64,29 @@ func OnRepoEntered(c telebot.Context, state fsm.Context, logger *zap.Logger, bot
 			)
 		}
 		return nil
+	} else if err := checkRepoIsValid(repo); err != nil {
+		if errors.Is(err, ErrHostIsIncorrect) {
+			messageText := fmt.Sprintf("Host <code>%s</code> is incorrect or doesn't support yet :(", repo.Host)
+			err := c.Send(messageText, &telebot.SendOptions{ParseMode: telebot.ModeHTML})
+			if err != nil {
+				logger.Error(
+					"An error occured while trying to send 'host is incorrect' for user",
+					zap.Error(err),
+				)
+			}
+			return nil
+		} else if errors.As(err, &githubErrResponse) {
+			messageText := fmt.Sprintf("Repo <code>%s</code> is incorrect/private or doesn't exist :(", repo.Repo)
+			err := c.Send(messageText, &telebot.SendOptions{ParseMode: telebot.ModeHTML})
+			if err != nil {
+				logger.Error(
+					"An error occured while trying to send 'host is incorrect' for user",
+					zap.Error(err),
+				)
+			}
+
+			return nil
+		}
 	}
 
 	var count int
@@ -79,7 +108,8 @@ func OnRepoEntered(c telebot.Context, state fsm.Context, logger *zap.Logger, bot
 	}
 
 	if count > 0 {
-		err := c.Send(fmt.Sprintf("**%s**:**%s**/**%s** is already exist", repo.Host, repo.Owner, repo.Repo))
+		messageText := fmt.Sprintf("<code>%s:%s/%s</code> is already exist", repo.Host, repo.Owner, repo.Repo)
+		err := c.Send(messageText, &telebot.SendOptions{ParseMode: telebot.ModeHTML})
 		if err != nil {
 			logger.Error(
 				"An error occured while trying to send 'repo is already exist' for user",
@@ -109,19 +139,19 @@ func OnRepoEntered(c telebot.Context, state fsm.Context, logger *zap.Logger, bot
 		)
 	}
 
-	messageText := fmt.Sprintf("Repo <code>%s:%s/%s</code> successfully added!", repo.Host, repo.Owner, repo.Repo)
-	err = c.Send(messageText, &telebot.SendOptions{ParseMode: telebot.ModeHTML})
+	err = state.Finish(c.Data() != "")
 	if err != nil {
 		logger.Error(
-			"An error occured while sending message to user",
+			"An error occured while trying to finish AddRepo state",
 			zap.Error(err),
 		)
 	}
 
-	err = state.Finish(true)
+	messageText := fmt.Sprintf("Repo <code>%s:%s/%s</code> successfully added!", repo.Host, repo.Owner, repo.Repo)
+	err = c.Send(messageText, &telebot.SendOptions{ParseMode: telebot.ModeHTML, ReplyMarkup: GetStartKeyboard()})
 	if err != nil {
 		logger.Error(
-			"An error occured while trying to finish AddRepo state",
+			"An error occured while sending message to user",
 			zap.Error(err),
 		)
 	}
@@ -154,20 +184,17 @@ func parseMessage(m *telebot.Message) (*Repo, error) {
 	return &newRepo, nil
 }
 
-func checkRepoIsValid(repo *Repo) bool {
+func checkRepoIsValid(repo *Repo) error {
 	switch repo.Host {
 	case "github.com":
 		githubClient := fetcher.RepoHostingClientsVar.GitHub
 
 		_, _, err := githubClient.Repositories.Get(context.Background(), repo.Owner, repo.Repo)
-		if err != nil {
-			return false
-		}
-	default:
-		return false
-	}
 
-	return true
+		return err
+	default:
+		return ErrHostIsIncorrect
+	}
 }
 
 func checkRepoHasReleases(repo *Repo) (string, bool) {

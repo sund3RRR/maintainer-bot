@@ -19,7 +19,19 @@ func RegisterHandlers(manager *fsm.Manager, logger *zap.Logger, bot *telebot.Bot
 		}
 		return err
 	})
+	manager.Bind("/home", fsm.AnyState, func(c telebot.Context, state fsm.Context) error {
+		err := state.Finish(c.Data() != "")
+		if err != nil {
+			logger.Error(
+				"An error occured while trying to finish state",
+				zap.Error(err),
+			)
+		}
 
+		err = c.Send("How can I help you?", &telebot.SendOptions{ReplyMarkup: handlers.GetStartKeyboard()})
+
+		return err
+	})
 	manager.Bind("/add_repo", fsm.DefaultState, func(c telebot.Context, state fsm.Context) error {
 		err := handlers.AddRepoHandler(c, state, logger, bot)
 		if err != nil {

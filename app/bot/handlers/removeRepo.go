@@ -88,12 +88,7 @@ func OnRemoveRepoEntered(c telebot.Context, state fsm.Context, logger *zap.Logge
 
 	db := dbApp.DBInstance
 
-	type RemoveRepoDB struct {
-		Host  string `db:"host"`
-		Owner string `db:"owner"`
-		Repo  string `db:"repo"`
-	}
-	var removeRepoDB RemoveRepoDB
+	var removeRepoDB RepoInfo
 	err = db.Get(&removeRepoDB, "SELECT host, owner, repo FROM repos WHERE id = $1;", id)
 	if err != nil {
 		logger.Error(

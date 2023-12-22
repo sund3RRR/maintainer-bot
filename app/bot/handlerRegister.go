@@ -87,6 +87,17 @@ func RegisterHandlers(manager *fsm.Manager, logger *zap.Logger, bot *telebot.Bot
 	//
 	// Remove Repo
 	//
+
+	//
+	// List Repo
+	//
+	manager.Bind("/list_repos", fsm.DefaultState, func(c telebot.Context, state fsm.Context) error {
+		err := handlers.ListRepoHandler(c, state, logger, bot)
+		return err
+	})
+	//
+	// List Repo
+	//
 }
 
 func ExtractCallbackQuery(callback string) string {

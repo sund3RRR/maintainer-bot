@@ -29,6 +29,11 @@ type Repo struct {
 	LastTag   string `db:"last_tag"`
 	IsRelease bool   `db:"is_release"`
 }
+type RepoInfo struct {
+	Host  string `db:"host"`
+	Owner string `db:"owner"`
+	Repo  string `db:"repo"`
+}
 
 func AddRepoHandler(c telebot.Context, state fsm.Context, logger *zap.Logger, bot *telebot.Bot) error {
 	logger.Info(

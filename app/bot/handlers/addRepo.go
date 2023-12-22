@@ -61,7 +61,7 @@ func OnRepoEntered(c telebot.Context, state fsm.Context, logger *zap.Logger, bot
 	repo, err := parseMessage(c.Message())
 	if err != nil {
 		messageText := "Sorry, but I can't add the repository :(" +
-			"\n Please enter the repo in the format 'https://<u>host</u>/<u>owner</u>/<u>repo</u>'"
+			"\nPlease enter the repo in the format 'https://<u>host</u>/<u>owner</u>/<u>repo</u>'"
 		err := c.Send(messageText, &telebot.SendOptions{ParseMode: telebot.ModeHTML})
 		if err != nil {
 			logger.Error(
@@ -171,6 +171,7 @@ func parseMessage(m *telebot.Message) (*Repo, error) {
 	text, _ = strings.CutPrefix(text, "http://")
 	text, _ = strings.CutPrefix(text, "https://")
 	text, _ = strings.CutSuffix(text, ".git")
+	text, _ = strings.CutSuffix(text, "/")
 	splitted := strings.Split(text, "/")
 
 	if len(splitted) != 3 {

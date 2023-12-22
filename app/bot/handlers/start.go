@@ -18,6 +18,7 @@ func GetHomeKeyboard() *telebot.ReplyMarkup {
 			},
 		},
 	}
+	keyboard.ResizeKeyboard = true
 	return &keyboard
 }
 
@@ -39,6 +40,7 @@ func GetStartKeyboard() *telebot.ReplyMarkup {
 			},
 		},
 	}
+	keyboard.ResizeKeyboard = true
 	return &keyboard
 }
 

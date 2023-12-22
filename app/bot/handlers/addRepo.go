@@ -21,6 +21,7 @@ const (
 )
 
 type Repo struct {
+	ID        int    `db:"id"`
 	Host      string `db:"host"`
 	Owner     string `db:"owner"`
 	Repo      string `db:"repo"`

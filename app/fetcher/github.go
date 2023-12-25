@@ -1,66 +1,22 @@
 package fetcher
 
 import (
-	repodb "app/db"
+	"app/db"
 	"context"
 	"fmt"
-	"regexp"
-	"strings"
 
 	"github.com/google/go-github/v57/github"
 	"go.uber.org/zap"
 )
 
-func formatTitle(repo *repodb.Repo, newTagName string) string {
-	return fmt.Sprintf(
-		"<b>%s</b> / <b>%s</b> <code>%s</code> -> <code>%s</code>",
-		repo.Owner,
-		repo.Repo,
-		repo.LastTag,
-		newTagName,
-	)
-}
-func formatReleaseBody(text string) string {
-	splitted := strings.Split(text, "\n")
-	var result string
-
-	for _, line := range splitted {
-		is_heading := false
-		for len(line) > 0 && line[0] == '#' {
-			line = strings.TrimPrefix(line, "#")
-			line = strings.TrimSpace(line)
-			is_heading = true
-		}
-		if is_heading {
-			result += fmt.Sprintf("<b><u>%s</u></b>\n", line)
-		} else {
-			result += line + "\n"
-		}
-
-	}
-
-	result = replaceMdToHtml(result, "`", "code")
-	result = replaceMdToHtml(result, `\*\*`, "b")
-	result = replaceMdToHtml(result, `\*`, "i")
-
-	return result
+type GithubFetcher struct {
+	Client *github.Client
 }
 
-func replaceMdToHtml(text, mdSymbol, htmlTag string) string {
-	// Define a regular expression to find words enclosed in backticks
-	pattern := fmt.Sprintf(`%s([^`+"`"+`]+)%s`, mdSymbol, mdSymbol)
-
-	// Replace all occurrences of the pattern with <code>word</code>
-	re := regexp.MustCompile(pattern)
-	result := re.ReplaceAllString(text, fmt.Sprintf(`<%s>$1</%s>`, htmlTag, htmlTag))
-
-	return result
-}
-
-func FetchGithubRepo(repo *repodb.Repo, client *github.Client, logger *zap.Logger) *RepoMessage {
+func (f *GithubFetcher) FetchRepo(repo *db.Repo, logger *zap.Logger) *RepoMessage {
 	newTagName, body, link := "", "", ""
 	if repo.IsRelease {
-		release, _, err := client.Repositories.GetLatestRelease(context.Background(), repo.Owner, repo.Repo)
+		release, _, err := f.Client.Repositories.GetLatestRelease(context.Background(), repo.Owner, repo.Repo)
 		if err != nil {
 			logger.Error(
 				"An error occured while getting repositiry",
@@ -72,7 +28,7 @@ func FetchGithubRepo(repo *repodb.Repo, client *github.Client, logger *zap.Logge
 		body = formatReleaseBody(*release.Body)
 		link = fmt.Sprintf("https://github.com/%s/%s/releases/tag/%s", repo.Owner, repo.Repo, newTagName)
 	} else {
-		tags, _, err := client.Repositories.ListTags(context.Background(), repo.Owner, repo.Repo, &github.ListOptions{Page: 0})
+		tags, _, err := f.Client.Repositories.ListTags(context.Background(), repo.Owner, repo.Repo, &github.ListOptions{Page: 0})
 		if err != nil {
 			logger.Error(
 				"An error occured while getting tags",
@@ -94,4 +50,34 @@ func FetchGithubRepo(repo *repodb.Repo, client *github.Client, logger *zap.Logge
 		Link:   link,
 		NewTag: newTagName,
 	}
+}
+
+func (f *GithubFetcher) GetGithubRepository(repo *db.Repo) (*github.Repository, error) {
+	repository, _, err := f.Client.Repositories.Get(context.Background(), repo.Owner, repo.Repo)
+
+	return repository, err
+}
+
+func (f *GithubFetcher) GetLatestReleaseTagName(repo *db.Repo) (string, error) {
+	lastRelease, _, err := f.Client.Repositories.GetLatestRelease(context.Background(), repo.Owner, repo.Repo)
+	if err != nil {
+		return "", err
+	}
+	tagName := lastRelease.GetTagName()
+
+	return tagName, nil
+}
+
+func (f *GithubFetcher) GetLatestTagName(repo *db.Repo) (string, error) {
+	tags, _, err := f.Client.Repositories.ListTags(context.Background(), repo.Owner, repo.Repo, &github.ListOptions{Page: 1})
+	if err != nil {
+		return "", err
+	}
+	if len(tags) == 0 {
+		return "", ErrNoTagsInRepo
+	}
+
+	tagName := tags[0].GetName()
+
+	return tagName, nil
 }

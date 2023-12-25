@@ -2,72 +2,93 @@ package main
 
 import (
 	"app/bot"
-	appConfig "app/config"
-	appDB "app/db"
+	"app/config"
+	"app/db"
 	"app/fetcher"
-	"fmt"
 	"log"
 	"os"
+	"sync"
 
 	"github.com/google/go-github/v57/github"
 	_ "github.com/lib/pq"
 
-	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
 
 func main() {
-	config, err := appConfig.NewConfig("config/config.yml")
+	cfg, err := config.NewConfig("config/config.yml")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	logger, err := config.ZapConfig.Build()
+	logger, err := cfg.ZapConfig.Build()
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	defer logger.Sync()
 
-	databaseUrl := fmt.Sprintf(
-		"postgres://%s:%s@%s:%d/%s?sslmode=disable",
-		config.Postgres.User,
-		config.Postgres.Password,
-		config.Postgres.Host,
-		config.Postgres.Port,
-		config.Postgres.Database,
-	)
-	db, err := sqlx.Connect("postgres", databaseUrl)
+	dbService := db.DatabaseService{}
+	err = dbService.Connect(cfg)
 	if err != nil {
-		log.Fatalln(err)
+		logger.Fatal(
+			"An error occured while trying to connect postgreSQL",
+			zap.Error(err),
+			zap.String("Host", cfg.Postgres.Host),
+			zap.Int("Port", cfg.Postgres.Port),
+			zap.String("User", cfg.Postgres.User),
+			zap.String("Database", cfg.Postgres.Database),
+		)
 	}
-	defer db.Close()
 
-	appDB.DBInstance = db
-
-	logger.Info(
-		"Successfully connected to PostgeSQL",
-		zap.String("Host", config.Postgres.Host),
-		zap.Int("Port", config.Postgres.Port),
-		zap.String("User", config.Postgres.User),
-		zap.String("Database", config.Postgres.Database),
-	)
+	defer dbService.DB.Close()
+	logger.Info("Successfully connected to PostgeSQL")
 
 	if len(os.Args) > 1 && os.Args[1] == "--prepare-db" {
-		appDB.PrepareDb(db)
+		err := dbService.PrepareDb()
+		if err != nil {
+			logger.Fatal("An error occured while trying to prepare DB", zap.Error(err))
+		}
 		logger.Info("Prepare database request complete successfully")
 	}
 
 	logger.Info("Starting telegram bot...")
 
-	githubClient := github.NewClient(nil).WithAuthToken(config.RepoHostingApis.GithubToken)
+	githubClient := github.NewClient(nil).WithAuthToken(cfg.RepoHostingApis.GithubToken)
 
-	repoHostingClients := &appConfig.RepoHostingClients{
-		GitHub: githubClient,
-	}
 	repoUpdatesChan := make(chan *fetcher.RepoMessage)
 
-	go fetcher.StartRepoFetcher(repoUpdatesChan, db, repoHostingClients, logger)
+	var wg sync.WaitGroup
+	wg.Add(3)
 
-	bot.StartBot(config.TelegramBot.Token, repoUpdatesChan, logger)
+	f := fetcher.Fetcher{
+		RepoUpdatesChan: repoUpdatesChan,
+		DatabaseService: &dbService,
+		Github:          &fetcher.GithubFetcher{Client: githubClient},
+	}
+
+	go func() {
+		defer wg.Done()
+		f.StartRepoFetcher(logger)
+	}()
+
+	botService := bot.BotService{
+		Token:           cfg.TelegramBot.Token,
+		RepoUpdatesChan: repoUpdatesChan,
+		DatabaseService: &dbService,
+		Logger:          logger,
+		Fetcher:         &f,
+	}
+
+	go func() {
+		defer wg.Done()
+		botService.StartBot()
+	}()
+
+	go func() {
+		defer wg.Done()
+		botService.StartRepoSender()
+	}()
+
+	wg.Wait()
 }

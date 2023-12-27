@@ -6,7 +6,6 @@ import (
 	"app/db"
 	"app/fetcher"
 	"log"
-	"os"
 	"sync"
 
 	"github.com/google/go-github/v57/github"
@@ -44,12 +43,9 @@ func main() {
 	defer dbService.DB.Close()
 	logger.Info("Successfully connected to PostgeSQL")
 
-	if len(os.Args) > 1 && os.Args[1] == "--prepare-db" {
-		err := dbService.PrepareDb()
-		if err != nil {
-			logger.Fatal("An error occured while trying to prepare DB", zap.Error(err))
-		}
-		logger.Info("Prepare database request complete successfully")
+	err = dbService.PrepareDb()
+	if err != nil {
+		logger.Fatal("An error occured while trying to prepare DB", zap.Error(err))
 	}
 
 	logger.Info("Starting telegram bot...")

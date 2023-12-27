@@ -10,7 +10,6 @@ RUN set -eux; \
 
 FROM debian:12.2
 
-COPY config/config.yml /app/config/
 COPY --from=builder /build/maintainer-bot /app/maintainer-bot
 
 WORKDIR /app

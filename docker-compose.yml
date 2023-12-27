@@ -19,6 +19,8 @@ services:
     entrypoint: /app/maintainer-bot
     depends_on:
       - postgres
+    volumes:
+      - ./app/config/config.yml:/app/config/config.yml
   # bot-debug:
   #   build:
   #     context: ./app
@@ -28,3 +30,5 @@ services:
   #     - "4000:4000"
   #   depends_on:
   #     - postgres
+  #   volumes:
+  #     - ./app/config/config.yml:/app/config/config.yml

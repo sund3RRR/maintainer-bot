@@ -8,8 +8,7 @@ RUN set -eux; \
     CGO_ENABLED=0 go install -ldflags "-s -w -extldflags '-static'" github.com/go-delve/delve/cmd/dlv@latest; \
     CGO_ENABLED=0 go build -o /build/maintainer-bot ./cmd; \
     mkdir -p /app/config; \
-    cp /build/maintainer-bot /app/maintainer-bot; \
-    cp /build/config/config.yml /app/config/
+    cp /build/maintainer-bot /app/maintainer-bot
 
 WORKDIR /app
 

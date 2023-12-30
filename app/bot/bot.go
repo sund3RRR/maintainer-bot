@@ -65,7 +65,7 @@ func (botService *BotService) StartRepoSender() {
 		botService.Logger.Info("New send message request received, processing")
 
 		if repo.Text != "" {
-			repo.Text += "\n\n"
+			repo.Text += "\n"
 		}
 		message := fmt.Sprintf("%s\n\n%s%s", repo.Title, repo.Text, repo.Link)
 

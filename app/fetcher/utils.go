@@ -17,7 +17,9 @@ func formatTitle(repo *db.Repo, newTagName string) string {
 	)
 }
 func formatReleaseBody(text string) string {
-	splitted := strings.Split(text, "\n")
+	stripped := strings.Trim(text, "\n")
+	splitted := strings.Split(stripped, "\n")
+
 	var result string
 
 	for _, line := range splitted {

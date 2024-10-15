@@ -1,8 +1,9 @@
 package bot
 
 import (
-	"app/db"
 	"fmt"
+
+	"github.com/sund3RRR/maintainer-bot/internal/adapters/db"
 
 	"gopkg.in/telebot.v3"
 )

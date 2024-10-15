@@ -1,16 +1,16 @@
 package main
 
 import (
-	"app/bot"
-	"app/config"
-	"app/db"
-	"app/fetcher"
 	"log"
 	"sync"
 
+	"github.com/sund3RRR/maintainer-bot/internal/adapters/db"
+	"github.com/sund3RRR/maintainer-bot/internal/adapters/fetcher"
+	"github.com/sund3RRR/maintainer-bot/internal/config"
+	"github.com/sund3RRR/maintainer-bot/internal/modules/bot"
+
 	"github.com/google/go-github/v57/github"
 	_ "github.com/lib/pq"
-
 	"go.uber.org/zap"
 )
 

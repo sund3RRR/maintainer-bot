@@ -1,9 +1,10 @@
 package fetcher
 
 import (
-	"app/config"
-	"app/db"
 	"time"
+
+	"github.com/sund3RRR/maintainer-bot/internal/adapters/db"
+	"github.com/sund3RRR/maintainer-bot/internal/config"
 
 	"go.uber.org/zap"
 )

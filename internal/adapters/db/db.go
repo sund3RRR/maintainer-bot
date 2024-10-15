@@ -1,8 +1,9 @@
 package db
 
 import (
-	"app/config"
 	"fmt"
+
+	"github.com/sund3RRR/maintainer-bot/internal/config"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"

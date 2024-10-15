@@ -1,9 +1,10 @@
 package bot
 
 import (
-	"app/fetcher"
 	"errors"
 	"fmt"
+
+	"github.com/sund3RRR/maintainer-bot/internal/adapters/fetcher"
 
 	"github.com/google/go-github/v57/github"
 	"github.com/vitaliy-ukiru/fsm-telebot"

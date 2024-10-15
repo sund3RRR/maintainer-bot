@@ -5,7 +5,7 @@ COPY . /build
 WORKDIR /build
 
 RUN set -eux; \
-    go build -o /build/maintainer-bot ./cmd
+    go build -ldflags="-s -w" -o /build/maintainer-bot cmd/main.go
 
 
 FROM debian:12.2

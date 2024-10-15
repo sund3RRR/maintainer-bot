@@ -1,10 +1,11 @@
 package bot
 
 import (
-	"app/db"
-	"app/fetcher"
 	"fmt"
 	"time"
+
+	"github.com/sund3RRR/maintainer-bot/internal/adapters/db"
+	"github.com/sund3RRR/maintainer-bot/internal/adapters/fetcher"
 
 	"github.com/vitaliy-ukiru/fsm-telebot"
 	"github.com/vitaliy-ukiru/fsm-telebot/storages/memory"

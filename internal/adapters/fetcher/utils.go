@@ -1,10 +1,11 @@
 package fetcher
 
 import (
-	"app/db"
 	"fmt"
 	"regexp"
 	"strings"
+
+	"github.com/sund3RRR/maintainer-bot/internal/adapters/db"
 )
 
 func formatTitle(repo *db.Repo, newTagName string) string {

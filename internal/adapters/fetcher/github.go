@@ -1,9 +1,10 @@
 package fetcher
 
 import (
-	"app/db"
 	"context"
 	"fmt"
+
+	"github.com/sund3RRR/maintainer-bot/internal/adapters/db"
 
 	"github.com/google/go-github/v57/github"
 	"go.uber.org/zap"

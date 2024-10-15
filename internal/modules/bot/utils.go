@@ -1,11 +1,12 @@
 package bot
 
 import (
-	"app/db"
-	"app/fetcher"
 	"errors"
 	"strconv"
 	"strings"
+
+	"github.com/sund3RRR/maintainer-bot/internal/adapters/db"
+	"github.com/sund3RRR/maintainer-bot/internal/adapters/fetcher"
 
 	"gopkg.in/telebot.v3"
 )
